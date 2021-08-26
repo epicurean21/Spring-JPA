@@ -3,7 +3,7 @@
 > 김영한 저자의 '자바 ORM 표준 JPA 프로그래밍' 및 강의를 바탕으로 
 > Spring JPA를 공부한다.
 >
-> <img src="./readmeImages/jpa.jpg" alt="jpa" style="zoom:33%;" /> 
+> <img src="../readmeImages/jpa.jpg" alt="jpa" style="zoom:33%;" /> 
 
 ### Server Spectiication
 - IntelliJ (Mac OS X)
@@ -138,9 +138,152 @@
 
 
 
-1. 연관관계
-2. 데이터 타입
-3. 데이터 식별 방법
+2. 연관관계
+
+   - 객체는 **참조** 를 사용한다: member.getTeam()
+
+   - 테이블을 **외래 키** 를 사용한다: JOIN ON M.TEAM_ID = T.TEAM_ID
+
+   - 이 둘은 매우 다르다
+
+     - 객체
+       - Member.getTeam()으로 Team으로 갈 수 있음
+       - Team만 조회했을때 member로 갈수있나? **없다**
+     - 테이블
+       - Member를 조회, Team Join해서 갈 수 있음
+       - Team을 조회 Member로 갈 수 있음 join 하면된다.
+     - 객체 Reference를 통한 연관관계는 **방향성이 있음**
+     - DB에서 Foreign Key는 **방향성이 없음**. 하나만 있으면 반대로 왔다갔다 가능
+     - 양방향 연관관계 Mapping이 매우 중요하지만 어려움 (JPA의 포인터 같은 놈)
+
+     
+
+   - **객체를 테이블에 맞추어 모델링**
+
+     * ```java
+       class Member {
+         private String id;	// MEMBER_ID 컬럼 사용
+         private Long teamId; // TEAM_ID FK 컬럼 사용
+         private String username; // USERNAME 컬럼 사용
+       }
+       ```
+
+     * ```java
+       class Team {
+         private Long id; // TEAM_ID PK 사용
+         private String name; // NAME 컬럼 사용
+       }
+       ```
+
+     * Member Class에 teamId라는 외래키 값을 그대로 넣는다.즉 외래키 자체를 그대로 Mapping 한다.
+
+       * 객체지향적으로는 Member에 Team 객체가 있는게 더 객체지향적 (Id 값만 있는게 아닌)
+
+     * 근데 이러한 설계를 객체지향적이지 않다는 딴지를 걸며 객체다운 모델링으로 바꾸면??
+       * ```java
+         class Member {
+           private String id;	// MEMBER_ID 컬럼 사용
+         	private Team team; // 참조로 연관관례를 맺는다.
+           private String username; // USERNAME 컬럼 사용
+           
+           Team getTeam() {
+             return team;
+           }
+         }
+         ```
+
+       * ```java
+         class Team {
+         	private Long id;
+           private String name;
+         }
+         ```
+
+         Member 객체가 Team 객체를 갖고있음 
+
+         TEAM_ID는 member.getTeam().getId(); 로 넣는다 !?
+
+         INSERT INTO MEMBER (MEMBER_ID, TEAM_ID, USERNAME) VALUES ...
+
+       * 이럴경우 조회하려면 ... HELL 시작
+
+         ```sql
+         SELECT M.*, T.*
+         FROM MEMBER M
+         JOIN TEAM T ON M.TEAM_ID = T.TEAM_ID
+         ```
+
+         ...
+
+         ```java
+         public Member find(String memberId) {
+           // SQL 실행 ...
+           
+           Member member = new Member();
+           
+           // 데이터베이스에서 조회한 회원 관련 정보를 모두 입력...
+           
+           Team team = new Team();
+           
+           // 데이터베이스에서 조회한 팀 관련 정보를 모두 입력...
+           
+           member.setTeam(team); // **
+           return member;
+         }
+         ```
+
+         많이 길다... 코드가 너무 길어도 너무 길다 ...
+
+       * 이렇게 반환하면..? 뭔가 이상하다... 기존에 한방 쿼리로.. Member_Team 이란 DTO를 갖고있었는데... 이렇게 객체지향적으로 하니까 너무 길다... 복잡하다...
+
+3. 데이터 타입
+
+4. 데이터 식별 방법
 
  
+
+**객체 지향적으로 모델링 할수록 매핑 작업만 늘어난다**
+
+**객체를 자바 컬렉션에 저장하듯이 DB에 저장할 수 없을까 ?**
+
+##### JPA - Java Persistence API
+
+- Java 진영의 **ORM **기술 표준
+
+##### ORM ?
+
+- Object-Relational Mapping (객체 관계 매핑)
+- 객체는 객체대로 설계
+- 관계형 데이터베이스는 관계형 데이터베이스대로 설계
+- ORM 프레임워크가 중간에서 Mapping
+- 대중적인 언어에는 대부분 ORM 기술이 존재한다.
+
+
+
+##### JPA 동작 - 저장
+
+<img src="./readmeImages/JPAMove.png" alt="jpa" style="zoom:40%;" /> 
+
+* MemberDAO에 회원 객체를 넘기면 JPA **Persist** 라는 명령어가 Entity를 분석해서 Insert Query를 만들어준다.
+* 객체를 DB로 바꿀 뿐 아니라 **패러다임 불일치를 해결한다**
+  * JPA가 알아서 Insert 쿼리를 두 번 만들어서 넣는다. 즉 Member Class, Album Class에 다 넣는다.
+  * JPA를 통해 Album 객체를 조회하면, **JPA가 알아서 Album 객체와 Join을 해서 Album 객체를 가져온다.**
+
+##### 
+
+##### JPA 동작 - 조회
+
+<img src="./readmeImages/JPASearch.png" alt="jpa" style="zoom:40%;" /> 
+
+* JPA가 find(식별자)를 하면, 패러다임 불일치를 해결한 적절한 SQL을 생성한다.
+
+
+
+##### JPA 소개
+
+- EJB - 엔티티 빈 (자바 표준)
+- 하이버네이트 (Hibernate, 오픈소스) 
+- JPA (자바 표준) - **JPA는 인터페이스, 실질적인 구현체는 Hibernate 를 사용한다.**
+
+
 
