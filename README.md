@@ -287,3 +287,139 @@
 
 
 
+##### **JPA 생산성** - JPA와 CRUD
+
+- 저장: jpa.persist(member)
+
+- 조회: Member member = jpa.find(memberId)
+
+- 수정: member.setName("name")
+
+  - 이러면 끝난다고 !?
+  - update, save 호출이 필요없다. 
+  - **Transaction이 commit되는 시점에 JPA가 알아서 변경된 내용을 찾아서 DB에 Query를 날린다**
+
+- 삭제: jpa.remove(member)
+
+  
+
+##### JPA와 연관관계, 객체 그래프 탐색
+
+```java
+// 연관관계 저장
+member.setTeam(team);
+jpa.persist(member);
+
+// 객체 그래프 탐색
+Member member = jpa.find(Member.class, memberId);
+Team team = member.getTeam();
+```
+
+* Member를 가져왔는데 어떻게 Team 객체가 Nullpoint Exception 발생없이 가져올까 ?
+  * JPA가 Member와 관련된 객체를 한번에 다 미리 가져오는가 ? 테이블이 50개면... 어마어마한 양 
+    * 이렇게 동작하지 않고 보다 **우아하게** 동작한다
+  * **member.getTeam()** 시점에, Team 조회가 안되있으면 **JPA가 이때 Team만 조회하는 쿼리를 날린다.**
+    * Lazy Loading
+  * 원하면 한번에 미리 가져오도록 할 수 있기도 하다. 
+
+
+
+##### 신뢰할 수 있는 엔티티, 계층
+
+```java
+class MemberService {
+	  ...
+		public void process() {
+      Member member = memberDAO.find(memberId);
+      member.getTeam(); // 자유로운 객체 그래프 탐색
+      member.getOrder().getDelivery();
+    } 
+}
+```
+
+* JPA를 통해 맴버 객체를 가져오면 이러한 자유로운 객체를 가져올 수 있다. 
+* **물론 성능적인 측면은 생각을 해야한다**
+
+
+
+**동일한 트랜잭션에서 조회한 엔티티는 같음을 보장한다**
+
+```java
+class MemberService {
+	  ...
+		public void compare() {
+      String memberId = "100";
+      Member member1 = jpa.find(Member.class, memberId);
+      Member member2 = jpa.find(Member.class, memberId);
+      
+      member1 == member2; // 같다
+    } 
+}
+```
+
+* 마치 자바 collection에 넣고 빼는 것 처럼, JPA collection에 넣었다 빼고, 나머지 DB와의 연결부분은 JPA가 다 해준다.
+
+
+
+##### JPA의 성능 최적화 기능
+
+1. 1차 캐시와 동일성 (identity) 보장
+
+   - 같은 **Transaction 안에서** 조회를 하면, 두 번째꺼는 db에서 가져오는게 아닌, cache에서 가져온다.
+   - 즉 member1, member2를 조회하면 member1에서는 쿼리가 나가지만, member2는 캐쉬에서 가져온다. 
+     - **물론 같은 Transaction에서만이다**
+   - JPA라는 중간 Layer가 존재하기에 가능
+
+2. 트랜잭션을 지원하는 쓰기 지연 (transactional write-bound)
+
+   - 트랜잭션을 커밋할 때까지 INSERT SQL을 모은다
+
+   - **JDBC BATCH SQL** 기능을 사용해 한번에 SQL을 전송
+
+     ```java
+     transaction.begin(); // [트랜잭션] 시작
+     
+     em.persist(memberA);
+     em.persist(memberB);
+     em.persist(memberC);
+     // 여기까지 INSERT SQL을 DB에 보내지 않는다
+     
+     // 커밋하는 순간 데이터베이스에 INSERT SQL을 모아서 보낸다
+     transaction.commit(); // [트랜잭션] 커밋
+     ```
+
+     
+
+3. 지연 로딩 (Lazy Loading)
+
+
+
+##### 지연 로딩과 즉시 로딩
+
+> 지연 로딩: 객체가 실제 사용될 때 로딩
+>
+> 즉시 로딩: JOIN SQL로 한번에 연관된 객체까지 미리 조회
+
+```java
+// 지연 로딩
+
+Member member = memberDAO.find(memberId); // SELECT * FROM MEMBER 
+
+Team team = member.getTeam();
+String teamName = team.getName(); // SELECT * FROM TEAM
+```
+
+```java
+// 즉시 로딩
+
+Member member = memberDAO.find(memberId); // SELECT M.*, T.* FROM MEMBER JOIN TEAM ... 
+
+Team team = member.getTeam();
+String teamName = team.getName();
+```
+
+* 지연 로딩은 team.getName() 등 실제 team 객체의 내용을 사용 할 때 query를 날린다.
+* 지연 로딩은 쿼리를 두 번 날리네 ? 성능을 위해 즉시로딩을 쓸수도 있다. Member랑 Team이 만약 항상 같이 쓰인다면, 즉시 로딩..
+
+
+
