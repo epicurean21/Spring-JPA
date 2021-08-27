@@ -89,4 +89,11 @@ create table Member (
      - **Team 객체를 Lazy로 불러오면 Team의 Reference가 ByteBuddyInterceptor 라는 Type의 Proxy 객체로 변경된다.**
      - Hibernate Transaction안에서 접근하면, 객체가 아닌 Proxy 객체인 상태로 json 변환이 안되어 에러가 난다.
      - DTO를 사용하는게 가장 깔끔..
-4. 
+4. Member와 Team 정보를 한번에 - 하나의 Query로 가져오고 싶다면?
+   - 우선 FetchType=Lazy는 없애고,,
+   - **@NamedEntityGraph 를 사용한다**
+   - @NamedEntityGraph(name ="MemberWithTeam", attributeNodes = @NamedAttributeNode ("team"))
+   - findAll을 하는게 아닌, 우리가 Repository에서 재 정의를 하면서 Annotation을 사용한다
+   - Repository에, @EntityGraph("위에 설정한 name, MemberWithTeam") 어노테이션을 사용해준다.
+   - join 쿼리가 발생할 것
+   - 이런식으로 Annotation의 힘을 받아 자체적으로 따로따로 Query를 작성하는게 아닌, 한 번에 가져온다.
