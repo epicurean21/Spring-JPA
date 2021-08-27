@@ -70,3 +70,23 @@ create table Member (
 
 
 
+### 여러가지 문제들
+
+1. Test 코드에서 작성했을때 Member -> (OneToMany) Team 의 연관관계의 테이블에서, team과 Member를 각 인서트 하였다. 그 후 Member 객체를 테이블에서 조회한 다음 로그를 찍었는데, 이 때 select 문이 team에 대한 내용 없이 member만을 찾아보았다 왜그럴까?
+   - Transaction의 범위를 생각해보아야한다. Annotation으로 달아놓은 @DataJpaTest는 @Test annotation 아래의 하나의 메소드 전체가 트랜잭션 범위에 포함된다. 즉 @Transactional 을 달아놓은것과 같은 효과이다. 
+   - 이럴경우, JPA는 (Hibernate 관점) 하나의 트랜잭션 내에서 캐시를 공유한다. 
+   - 즉, Team을 save 하면, **Persistence Context** 가 존재하는데, 그 안에 기본적으로 cache가 된다. 
+   - 이것을 Hibernate 1차 Cache 라고 한다.
+   - 그렇기에 cache가 돼 있는 상태에서, repository.findAll()을 했을 때 cache내에 이미 알고있는 데이터 + 모르는 데이터를 찾기위해 select 쿼리를 날리는데, 우리는 이미 team에 대한 정보가 캐시에 있기에 따로 찾을 필요가 없었던 것이다.
+
+2. 모든 JpaRepository의 메소드는 기본적으로 Transactional (@Transactional(readonly = true))이 적용된다. 
+   - 그렇기에 Persistence Context가 존재하지 않을 때 Member를 조회하면, Member에 필요한 Team 정보도 조회한디.
+3. Member 정보만 쿼리 한번으로 가져오는 방법은? - Team 정보 없이
+   - Fetch Lazy 옵션을 사용한다.
+   - 처음에 정보를 조회할때, team 정보를 참조하지 않으면 해당 데이터를 불러오지 않는다.
+   - **이때 단순 FetchType.Lazy 로 변경해서 Controller 에서 객체를 불러온다 생각해보자 에러가 날까?**
+     - 에러가 난다 ! - [<u>ByteBuddyInterceptor</u>]
+     - **Team 객체를 Lazy로 불러오면 Team의 Reference가 ByteBuddyInterceptor 라는 Type의 Proxy 객체로 변경된다.**
+     - Hibernate Transaction안에서 접근하면, 객체가 아닌 Proxy 객체인 상태로 json 변환이 안되어 에러가 난다.
+     - DTO를 사용하는게 가장 깔끔..
+4. 

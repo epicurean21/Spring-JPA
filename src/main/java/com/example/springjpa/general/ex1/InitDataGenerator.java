@@ -20,18 +20,17 @@ public class InitDataGenerator implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
-        Team team1 = createTeam(1L,"tema 1");
-        Team team2 = createTeam(2L,"tema 2");
+        Team team1 = createTeam("team 1");
+        Team team2 = createTeam("team 2");
 
-        createMember(1L, "JaeMin", team1);
-        createMember(2L, "Cho", team2);
+        createMember("JaeMin", team1);
+        createMember("Cho", team2);
     }
 
-    private Member createMember(Long id, String name, Team team) {
+    private Member createMember(String name, Team team) {
         Member member = memberRepository.findByName(name);
         if (member == null) {
             member = new Member();
-            member.setId(id);
             member.setName(name);
             member.setTeam(team);
             return memberRepository.save(member);
@@ -39,11 +38,10 @@ public class InitDataGenerator implements ApplicationRunner {
         return member;
     }
 
-    private Team createTeam(Long id, String name) {
+    private Team createTeam(String name) {
         Team team = teamRepository.findByName(name);
         if (team == null) {
             team = new Team();
-            team.setId(id);
             team.setName(name);
             return teamRepository.save(team);
         }

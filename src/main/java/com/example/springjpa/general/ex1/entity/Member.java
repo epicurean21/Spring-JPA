@@ -16,5 +16,5 @@ public class Member {
     private String name;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    Team team;
+    private Team team;
 }
