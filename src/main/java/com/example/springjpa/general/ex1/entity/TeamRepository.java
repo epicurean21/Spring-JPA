@@ -1,4 +1,7 @@
 package com.example.springjpa.general.ex1.entity;
 
-public class TeamRepository {
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface TeamRepository extends JpaRepository<Team, Long> {
+    Team findByName(String name);
 }
