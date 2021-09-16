@@ -2,11 +2,19 @@
 
 #### Spring Security 5 for Reactive
 
-![](../../../../../../../readMeImages/SpringSecurity.png) 
+![](../../../../../../../readmeImages/SpringSecurity.png) 
 
 > Spring Security는 Spring 기반의 애플리케이션의 보안(인증과 권한, 인가 등)을 담당하는 스프링 하위 프레임워크이다. Spring Security는 '인증'과 '권한'에 대한 부분을 Filter 흐름에 따라 처리하고 있다. Filter는 Dispatcher Servlet으로 가기 전에 적용되므로 가장 먼저 URL 요청을 받지만, Interceptor는 Dispatcher와 Controller사이에 위치한다는 점에서 적용 시기의 차이가 있다. Spring Security는 보안과 관련해서 체계적으로 많은 옵션을 제공해주기 때문에 개발자 입장에서는 일일이 보안관련 로직을 작성하지 않아도 된다는 장점이 있다.
 
+1. 사용자가 아이디 비밀번호로 로그인을 요청함
+2. AuthenticationFilter에서 UsernamePasswordAuthenticationToken을 생성하여 AuthenticaionManager에게 전달
+3. AuthenticaionManager는 등록된 AuthenticaionProvider(들)을 조회하여 인증을 요구함
+4. AuthenticaionProvider는 UserDetailsService를 통해 입력받은 아이디에 대한 사용자 정보를 DB에서 조회함
+5. 입력받은 비밀번호를 암호화하여 DB의 비밀번호화 매칭되는 경우 인증이 성공된 UsernameAuthenticationToken을 생성하여 AuthenticaionManager로 반환함
+6. AuthenticaionManager는 UsernameAuthenticaionToken을 AuthenticaionFilter로 전달함
+7. AuthenticationFilter는 전달받은 UsernameAuthenticationToken을 LoginSuccessHandler로 전송하고, SecurityContextHolder에 저장함
 
+출처: https://mangkyu.tistory.com/77 [MangKyu's Diary]
 
 #### 인증 (Authorization) & 인가(Authentication)
 
@@ -15,7 +23,7 @@
 
 즉, Spring Security에서는 **[인증 -> (인증 성공) -> 인가]** 의 절차를 거친다.
 
-##### ![](../../../../../../../readMeImages/AuthorizationAuthentication.png)
+##### ![](../../../../../../../readmeImages/AuthorizationAuthentication.png)
 
 **Credential 기반의 인증 방식 사용**
 
