@@ -2,6 +2,7 @@ package com.example.springjpa.security.entity.common;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -21,4 +22,8 @@ public abstract class Common implements Serializable {
     @UpdateTimestamp
     @Column(length = 20)
     private LocalDateTime updatedAt;                        // 수정 일자
+
+    @Setter
+    @Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT true")
+    private Boolean isEnable = true;
 }
