@@ -1,9 +1,8 @@
 package com.example.springjpa.security.config.utils;
 
 import com.example.springjpa.security.entity.User;
-import io.jsonwebtoken.JwtBuilder;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import com.example.springjpa.security.entity.enums.UserRole;
+import io.jsonwebtoken.*;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
@@ -34,6 +33,25 @@ public class TokenUtils {
                 .signWith(SignatureAlgorithm.HS512, createSigningKey());
 
         return builder.compact();
+    }
+
+    public static boolean isValidToken(String token) {
+        try {
+            Claims claims = getClaimsFormToken(token);
+            log.info("expire Time: " + claims.getExpiration());
+            log.info("email: " + claims.get("email"));
+            log.info("role: " + claims.get("role"));
+            return true;
+        } catch (ExpiredJwtException e) {
+            log.error("Token Expired!");
+            return false;
+        } catch (JwtException e) {
+            log.error("Token Tampered");
+            return false
+        } catch (NullPointerException e) {
+            log.error("Token is Null");
+            return false;
+        }
     }
 
     private static Map<String, Object> createHeader() {
@@ -73,9 +91,24 @@ public class TokenUtils {
         return c.getTime();
     }
 
+
     private static Key createSigningKey() {
-        byte[] apiKeyScreteBytes = DatatypeConverter.parseBase64Binary(secretKey);
-        return new SecretKeySpec(apiKeyScreteBytes, SignatureAlgorithm.HS256.getJcaName());
+        byte[] apiKeySecretBytes = DatatypeConverter.parseBase64Binary(secretKey);
+        return new SecretKeySpec(apiKeySecretBytes, SignatureAlgorithm.HS256.getJcaName());
+    }
+
+    private static Claims getClaimsFormToken(String token) {
+        return Jwts.parser().setSigningKey(DatatypeConverter.parseBase64Binary(secretKey)).parseClaimsJws(token).getBody();
+    }
+
+    private static String getUserEmailFromToken(String token) {
+        Claims claims = getClaimsFormToken(token);
+        return (String) claims.get("email");
+    }
+
+    private static UserRole getRoleFromToken(String token) {
+        Claims claims = getClaimsFormToken(token);
+        return (UserRole) claims.get("role");
     }
 
 }
