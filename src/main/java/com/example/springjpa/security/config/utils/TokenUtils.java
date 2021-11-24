@@ -22,7 +22,7 @@ import java.util.Map;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class TokenUtils {
     @Value("${jwt.token.secretKey}")
-    private static final String secretKey;
+    private static String SECRET_KEY;
 
     public static String generateJwtToken(User user) {
         JwtBuilder builder = Jwts.builder()
@@ -47,7 +47,7 @@ public class TokenUtils {
             return false;
         } catch (JwtException e) {
             log.error("Token Tampered");
-            return false
+            return false;
         } catch (NullPointerException e) {
             log.error("Token is Null");
             return false;
@@ -93,12 +93,12 @@ public class TokenUtils {
 
 
     private static Key createSigningKey() {
-        byte[] apiKeySecretBytes = DatatypeConverter.parseBase64Binary(secretKey);
+        byte[] apiKeySecretBytes = DatatypeConverter.parseBase64Binary(SECRET_KEY);
         return new SecretKeySpec(apiKeySecretBytes, SignatureAlgorithm.HS256.getJcaName());
     }
 
     private static Claims getClaimsFormToken(String token) {
-        return Jwts.parser().setSigningKey(DatatypeConverter.parseBase64Binary(secretKey)).parseClaimsJws(token).getBody();
+        return Jwts.parser().setSigningKey(DatatypeConverter.parseBase64Binary(SECRET_KEY)).parseClaimsJws(token).getBody();
     }
 
     private static String getUserEmailFromToken(String token) {
